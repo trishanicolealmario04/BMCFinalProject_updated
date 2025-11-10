@@ -1,8 +1,12 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // 1. ADD THIS IMPORT
-import 'package:ecommerce_app/screens/admin_panel_screen.dart'; // 2. ADD THIS
-
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:ecommerce_app/screens/admin_panel_screen.dart';
+import 'package:ecommerce_app/widgets/product_card.dart';
+import 'package:ecommerce_app/screens/product_detail_screen.dart';
+import 'package:ecommerce_app/providers/cart_provider.dart';
+import 'package:ecommerce_app/screens/cart_screen.dart';
+import 'package:provider/provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -14,6 +18,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   String _userRole = 'user';
   final User? _currentUser = FirebaseAuth.instance.currentUser;
+
   @override
   void initState() {
     super.initState();
@@ -25,7 +30,7 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final doc = await FirebaseFirestore.instance
           .collection('users')
-          .doc(_currentUser!.uid)
+          .doc(_currentUser.uid)
           .get();
 
       if (doc.exists && doc.data() != null) {
@@ -37,6 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
       print("Error fetching user role: $e");
     }
   }
+
   Future<void> _signOut() async {
     try {
       await FirebaseAuth.instance.signOut();
@@ -44,23 +50,44 @@ class _HomeScreenState extends State<HomeScreen> {
       print('Error signing out: $e');
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        // 1. Use the _currentUser variable we defined
-        title: Text(_currentUser != null ? 'Welcome, ${_currentUser!.email}' : 'Home'),
+        title: Text(_currentUser!= null ? 'Welcome, ${_currentUser.email}' : 'Home'),
         actions: [
 
-          // 2. --- THIS IS THE MAGIC ---
-          //    This is a "collection-if". The IconButton will only
-          //    be built IF _userRole is equal to 'admin'.
+          Consumer<CartProvider>(
+            // 2. The "builder" function rebuilds *only* the icon
+            builder: (context, cart, child) {
+              // 3. The "Badge" widget adds a small label
+              return Badge(
+                // 4. Get the count from the provider
+                label: Text(cart.itemCount.toString()),
+                // 5. Only show the badge if the count is > 0
+                isLabelVisible: cart.itemCount > 0,
+                // 6. This is the child (our icon button)
+                child: IconButton(
+                  icon: const Icon(Icons.shopping_cart),
+                  onPressed: () {
+                    // 7. Navigate to the CartScreen
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const CartScreen(),
+                      ),
+                    );
+                  },
+                ),
+              );
+            },
+          ),
+
           if (_userRole == 'admin')
             IconButton(
               icon: const Icon(Icons.admin_panel_settings),
               tooltip: 'Admin Panel',
               onPressed: () {
-                // 3. This is why we imported admin_panel_screen.dart
                 Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (context) => const AdminPanelScreen(),
@@ -69,19 +96,68 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
 
-          // 4. The logout button (always visible)
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Logout',
-            onPressed: _signOut, // 5. Call our _signOut function
+            onPressed: _signOut,
           ),
         ],
       ),
-      body: const Center(
-        child: Text(
-          'This is the Home Screen. Products will be listed here!',
-          style: TextStyle(fontSize: 18),
-        ),
+
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('products')
+            .orderBy('createdAt', descending: true) // 3. Show newest first
+            .snapshots(),
+
+        builder: (context, snapshot) {
+
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          }
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(
+              child: Text('No products found. Add some in the Admin Panel!'),
+            );
+          }
+          final products = snapshot.data!.docs;
+          return GridView.builder(
+            padding: const EdgeInsets.all(10.0),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+              childAspectRatio: 3 / 4,
+            ),
+            itemCount: products.length,
+            itemBuilder: (context, index) {
+              final productDoc = products[index];
+              final productData = productDoc.data() as Map<String, dynamic>;
+
+              return ProductCard(
+                productName: productData['name'],
+                price: productData['price'],
+                imageUrl: productData['imageUrl'],
+
+                onTap: () {
+                  // 5. Navigate to the new screen
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => ProductDetailScreen(
+                        // 6. Pass the data to the new screen
+                        productData: productData,
+                        productId: productDoc.id, // 7. Pass the unique ID!
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          );
+        },
       ),
     );
   }
