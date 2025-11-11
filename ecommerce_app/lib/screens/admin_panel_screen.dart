@@ -1,5 +1,8 @@
+import 'package:ecommerce_app/screens/admin_order_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:ecommerce_app/screens/admin_panel_screen.dart';
+
 
 class AdminPanelScreen extends StatefulWidget {
   const AdminPanelScreen({super.key});
@@ -13,7 +16,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _priceController = TextEditingController();
-  final _imageUrlController = TextEditingController(); // For the image link
+  final _imageUrlController = TextEditingController();
   bool _isLoading = false;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
@@ -41,7 +44,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
         'name': _nameController.text.trim(),
         'description': _descriptionController.text.trim(),
         'price': double.tryParse(_priceController.text.trim()) ?? 0.0,
-        'imageUrl': imageUrl, // 6. Save the URL string
+        'imageUrl': imageUrl,
         'createdAt': FieldValue.serverTimestamp(),
       });
 
@@ -71,7 +74,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Admin - Add Product'),
+        title: const Text('Admin Panel'),
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -81,9 +84,36 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.list_alt),
+                  label: const Text('Manage All Orders'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.lightBlue,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    textStyle: const TextStyle(fontSize: 16),
+                  ),
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => const AdminOrderScreen()
+                      ),
+                    );
+                  },
+                ),
+
+                const Divider(height: 30, thickness: 1),
+
+                const Text(
+                  'Add New Product',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 10),
+
                 TextFormField(
                   controller: _imageUrlController,
-                  decoration: const InputDecoration(labelText: 'Image URL'),
+                  decoration:
+                  const InputDecoration(labelText: 'Image URL'),
                   keyboardType: TextInputType.url,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -99,7 +129,8 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
 
                 TextFormField(
                   controller: _nameController,
-                  decoration: const InputDecoration(labelText: 'Product Name'),
+                  decoration: const InputDecoration(
+                      labelText: 'Product Name'),
                   validator: (value) =>
                   value!.isEmpty ? 'Please enter a name' : null,
                 ),
@@ -108,7 +139,7 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
                 TextFormField(
                   controller: _descriptionController,
                   decoration: const InputDecoration(labelText: 'Description'),
-                  maxLines: 3, // Makes the field taller
+                  maxLines: 3,
                   validator: (value) =>
                   value!.isEmpty ? 'Please enter a description' : null,
                 ),
@@ -147,5 +178,3 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> {
     );
   }
 }
-
-

@@ -7,6 +7,7 @@ import 'package:ecommerce_app/screens/product_detail_screen.dart';
 import 'package:ecommerce_app/providers/cart_provider.dart';
 import 'package:ecommerce_app/screens/cart_screen.dart';
 import 'package:provider/provider.dart';
+import 'package:ecommerce_app/screens/order_history_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -59,19 +60,13 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
 
           Consumer<CartProvider>(
-            // 2. The "builder" function rebuilds *only* the icon
             builder: (context, cart, child) {
-              // 3. The "Badge" widget adds a small label
               return Badge(
-                // 4. Get the count from the provider
                 label: Text(cart.itemCount.toString()),
-                // 5. Only show the badge if the count is > 0
                 isLabelVisible: cart.itemCount > 0,
-                // 6. This is the child (our icon button)
                 child: IconButton(
                   icon: const Icon(Icons.shopping_cart),
                   onPressed: () {
-                    // 7. Navigate to the CartScreen
                     Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (context) => const CartScreen(),
@@ -82,8 +77,21 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             },
           ),
+          IconButton(
+            icon: const Icon(Icons.receipt_long),
+            tooltip: 'My Orders',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const OrderHistoryScreen(),
+                ),
+              );
+            },
+          ),
 
           if (_userRole == 'admin')
+
+  if (_userRole == 'admin')
             IconButton(
               icon: const Icon(Icons.admin_panel_settings),
               tooltip: 'Admin Panel',
@@ -107,7 +115,7 @@ class _HomeScreenState extends State<HomeScreen> {
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('products')
-            .orderBy('createdAt', descending: true) // 3. Show newest first
+            .orderBy('createdAt', descending: true)
             .snapshots(),
 
         builder: (context, snapshot) {
@@ -123,6 +131,7 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Text('No products found. Add some in the Admin Panel!'),
             );
           }
+
           final products = snapshot.data!.docs;
           return GridView.builder(
             padding: const EdgeInsets.all(10.0),
@@ -143,13 +152,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 imageUrl: productData['imageUrl'],
 
                 onTap: () {
-                  // 5. Navigate to the new screen
                   Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (context) => ProductDetailScreen(
-                        // 6. Pass the data to the new screen
                         productData: productData,
-                        productId: productDoc.id, // 7. Pass the unique ID!
+                        productId: productDoc.id,
                       ),
                     ),
                   );
